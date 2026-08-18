@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lantern — Offline-First Learning App Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green-deep:#24402F;
+    --green-mid:#345940;
+    --gold:#E7A93B;
+    --gold-soft:#F3C876;
+    --cream:#F6F1E4;
+    --paper:#FBF8F1;
+    --ink:#262220;
+    --ink-soft:#6B6255;
+    --rust:#8C4A2F;
+    --sky:#3E7CB1;
+    --line:#E3D9C2;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--cream);
+    font-family:'Work Sans', sans-serif;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 60px;}
+
+  /* ---------- Header ---------- */
+  .top{
+    display:flex;justify-content:space-between;align-items:center;
+    gap:16px;flex-wrap:wrap;margin-bottom:28px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand h1{
+    font-family:'Fraunces',serif;font-weight:700;font-size:1.7rem;
+    margin:0;color:var(--green-deep);letter-spacing:-0.01em;
+  }
+  .brand p{margin:2px 0 0;font-size:.82rem;color:var(--ink-soft);}
+  .conn-toggle{
+    font-family:'JetBrains Mono',monospace;font-size:.78rem;
+    border:1.5px solid var(--green-deep);background:var(--green-deep);color:var(--paper);
+    padding:9px 16px;border-radius:999px;cursor:pointer;transition:.2s;
+    display:flex;align-items:center;gap:8px;
+  }
+  .conn-toggle.offline{background:var(--rust);border-color:var(--rust);}
+  .conn-toggle:focus-visible{outline:3px solid var(--sky);outline-offset:2px;}
+  .conn-toggle:hover{filter:brightness(1.08);}
+
+  /* ---------- Stage layout ---------- */
+  .stage{display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start;justify-content:center;}
+
+  /* ---------- Phone ---------- */
+  .phone{
+    width:344px;height:700px;background:var(--paper);
+    border-radius:42px;border:9px solid var(--ink);
+    box-shadow:0 24px 50px -18px rgba(36,64,47,.45);
+    overflow:hidden;position:relative;display:flex;flex-direction:column;flex-shrink:0;
+  }
+  .notch{
+    position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:130px;height:22px;background:var(--ink);border-radius:0 0 16px 16px;z-index:5;
+  }
+  .statusbar{
+    background:var(--green-deep);color:var(--cream);
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 22px 8px;font-family:'JetBrains Mono',monospace;font-size:.7rem;
+  }
+  .status-icons{display:flex;gap:10px;align-items:center;}
+  .databadge{
+    background:rgba(246,241,228,.15);padding:2px 8px;border-radius:8px;font-size:.65rem;
+  }
+
+  .screens{flex:1;overflow-y:auto;position:relative;background:var(--cream);}
+  .screen{display:none;padding:22px 20px 28px;min-height:100%;animation:fade .25s ease;}
+  .screen.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  .tabbar{
+    display:flex;justify-content:space-around;padding:10px 0 14px;
+    background:var(--paper);border-top:1px solid var(--line);
+  }
+  .tab{
+    background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;
+    color:var(--ink-soft);font-family:'Work Sans';font-size:.65rem;cursor:pointer;padding:4px 10px;
+  }
+  .tab .ic{font-size:1.15rem;}
+  .tab.active{color:var(--green-deep);font-weight:600;}
+  .tab:focus-visible{outline:2px solid var(--sky);border-radius:8px;}
+
+  /* ---------- Logo lantern ---------- */
+  .lantern-logo{width:40px;height:52px;flex-shrink:0;}
+
+  /* ---------- Typography helpers ---------- */
+  h2.screen-title{font-family:'Fraunces',serif;font-size:1.35rem;margin:0 0 4px;color:var(--green-deep);}
+  .sub{color:var(--ink-soft);font-size:.85rem;margin:0 0 18px;line-height:1.4;}
+  .back-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .back-btn{
+    background:var(--paper);border:1px solid var(--line);width:32px;height:32px;border-radius:10px;
+    cursor:pointer;font-size:1rem;color:var(--green-deep);display:flex;align-items:center;justify-content:center;
+  }
+  .back-btn:focus-visible{outline:2px solid var(--sky);}
+
+  /* ---------- Onboarding ---------- */
+  .onb-hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:14px;}
+  .onb-glow{
+    width:120px;height:150px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;
+  }
+  .onb-hero h2{font-family:'Fraunces',serif;font-size:1.6rem;margin:6px 0 8px;color:var(--green-deep);}
+  .onb-hero p{color:var(--ink-soft);font-size:.9rem;line-height:1.5;max-width:270px;}
+  .mode-card{
+    border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:18px;text-align:left;
+    cursor:pointer;transition:.15s;
+  }
+  .mode-card.selected{border-color:var(--gold);background:#FDF4E1;}
+  .mode-card b{font-size:.88rem;}
+  .mode-card span{display:block;font-size:.76rem;color:var(--ink-soft);margin-top:2px;}
+  .primary-btn{
+    width:100%;background:var(--green-deep);color:var(--paper);border:none;border-radius:12px;
+    padding:14px;font-family:'Work Sans';font-weight:600;font-size:.92rem;margin-top:20px;cursor:pointer;
+  }
+  .primary-btn:hover{background:var(--green-mid);}
+  .primary-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .primary-btn:focus-visible{outline:3px solid var(--sky);outline-offset:2px;}
+
+  /* ---------- Data meter (signature element) ---------- */
+  .data-meter{
+    background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:16px;
+  }
+  .data-meter-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+  .data-meter-top b{font-size:.82rem;}
+  .data-meter-top span{font-family:'JetBrains Mono';font-size:.72rem;color:var(--ink-soft);}
+  .meter-bars{display:flex;gap:3px;height:16px;}
+  .meter-bars i{flex:1;border-radius:3px;background:var(--line);}
+  .meter-bars i.filled{background:linear-gradient(180deg,var(--gold-soft),var(--gold));box-shadow:0 0 8px rgba(231,169,59,.5);}
+
+  .offline-banner{
+    background:#F4E6DC;border:1px solid var(--rust);color:var(--rust);
+    padding:10px 14px;border-radius:12px;font-size:.78rem;margin-bottom:16px;display:flex;gap:8px;align-items:center;
+  }
+
+  /* ---------- Subject cards ---------- */
+  .greet{font-family:'Fraunces',serif;font-size:1.3rem;margin:0 0 14px;color:var(--green-deep);}
+  .subject-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .subject-card{
+    background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px;cursor:pointer;
+    text-align:left;transition:.15s;
+  }
+  .subject-card:hover{border-color:var(--gold);}
+  .subject-card .ic{font-size:1.5rem;}
+  .subject-card b{display:block;font-family:'Fraunces',serif;font-size:.95rem;margin:8px 0 4px;color:var(--ink);}
+  .subject-card .count{font-family:'JetBrains Mono';font-size:.68rem;color:var(--ink-soft);}
+  .subject-card:focus-visible{outline:2px solid var(--sky);}
+
+  /* ---------- Lesson list ---------- */
+  .lesson-item{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;
+  }
+  .lesson-item .li-title{font-size:.86rem;font-weight:600;margin:0 0 3px;}
+  .lesson-item .li-size{font-family:'JetBrains Mono';font-size:.68rem;color:var(--ink-soft);}
+  .dl-btn{
+    background:var(--gold);border:none;color:var(--green-deep);font-weight:700;font-size:.72rem;
+    padding:8px 12px;border-radius:10px;cursor:pointer;white-space:nowrap;
+  }
+  .dl-btn:focus-visible{outline:2px solid var(--sky);}
+  .open-btn{
+    background:var(--green-deep);border:none;color:var(--paper);font-weight:600;font-size:.72rem;
+    padding:8px 12px;border-radius:10px;cursor:pointer;white-space:nowrap;
+  }
+  .done-chip{font-size:.68rem;color:var(--green-mid);font-weight:600;white-space:nowrap;}
+  .lantern-mini{width:22px;height:28px;flex-shrink:0;}
+  .progress-track{width:64px;height:8px;background:var(--line);border-radius:6px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--gold);transition:width .25s;}
+
+  /* ---------- Lesson view ---------- */
+  .offline-chip{
+    display:inline-flex;align-items:center;gap:5px;background:#E4EFE6;color:var(--green-mid);
+    font-size:.7rem;font-weight:600;padding:4px 10px;border-radius:999px;margin-bottom:12px;
+  }
+  .lesson-body{font-size:.86rem;line-height:1.65;color:var(--ink);margin-bottom:18px;}
+  .quiz-box{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:16px;}
+  .quiz-box p{margin:0 0 10px;font-weight:600;font-size:.85rem;}
+  .quiz-option{
+    display:block;width:100%;text-align:left;background:var(--cream);border:1px solid var(--line);
+    border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:.82rem;cursor:pointer;
+  }
+  .quiz-option.right{border-color:var(--green-mid);background:#E4EFE6;}
+  .quiz-option.wrong{border-color:var(--rust);background:#F4E6DC;}
+  .complete-btn{
+    width:100%;background:var(--green-deep);color:var(--paper);border:none;border-radius:12px;
+    padding:13px;font-weight:600;font-size:.88rem;cursor:pointer;
+  }
+  .complete-btn.done{background:var(--green-mid);}
+
+  /* ---------- Progress screen ---------- */
+  .stat-row{display:flex;gap:10px;margin-bottom:18px;}
+  .stat-card{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;}
+  .stat-card .num{font-family:'Fraunces',serif;font-size:1.5rem;color:var(--green-deep);}
+  .stat-card .lbl{font-size:.68rem;color:var(--ink-soft);margin-top:2px;}
+  .badge-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+  .badge-chip{
+    background:var(--paper);border:1px solid var(--gold);border-radius:12px;padding:8px 12px;
+    font-size:.72rem;display:flex;align-items:center;gap:6px;
+  }
+  .sync-status{font-size:.78rem;color:var(--ink-soft);display:flex;align-items:center;gap:6px;}
+
+  /* ---------- Sync screen ---------- */
+  .sync-center{text-align:center;padding-top:30px;}
+  .sync-icon{font-size:2.4rem;margin-bottom:10px;}
+  .sync-list{text-align:left;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:18px 0;}
+  .sync-list div{font-size:.8rem;padding:6px 0;border-bottom:1px solid var(--line);}
+  .sync-list div:last-child{border-bottom:none;}
+  .sync-success{color:var(--green-mid);font-weight:600;font-size:.85rem;margin-top:14px;display:none;}
+
+  /* ---------- Side panel ---------- */
+  .panel{width:290px;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:20px;flex-shrink:0;}
+  .panel h2{font-family:'Fraunces',serif;font-size:1.05rem;margin:0 0 4px;color:var(--green-deep);}
+  .panel .hint{font-size:.78rem;color:var(--ink-soft);margin:6px 0 16px;line-height:1.45;}
+  .screen-list{display:flex;flex-direction:column;gap:7px;}
+  .screen-list button{
+    text-align:left;background:var(--cream);border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;font-size:.8rem;cursor:pointer;color:var(--ink);
+  }
+  .screen-list button.active{background:var(--green-deep);color:var(--paper);border-color:var(--green-deep);}
+  .screen-list button:focus-visible{outline:2px solid var(--sky);}
+  .panel .note{font-size:.72rem;color:var(--ink-soft);margin-top:16px;line-height:1.5;border-top:1px solid var(--line);padding-top:14px;}
+
+  @media (prefers-reduced-motion: reduce){
+    .screen{animation:none;}
+  }
+  @media (max-width:400px){
+    .phone{width:100%;max-width:344px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="brand">
+      <svg class="lantern-logo" viewBox="0 0 60 78" aria-hidden="true">
+        <path d="M30 2 L30 10" stroke="#24402F" stroke-width="3" stroke-linecap="round"/>
+        <path d="M20 10 h20 l-4 8 h-12 z" fill="#24402F"/>
+        <rect x="12" y="18" width="36" height="42" rx="10" fill="#E7A93B"/>
+        <rect x="18" y="24" width="24" height="30" rx="6" fill="#F3C876" opacity=".55"/>
+        <path d="M20 60 h20 l-4 8 h-12 z" fill="#24402F"/>
+        <ellipse cx="30" cy="39" rx="7" ry="10" fill="#FBF8F1" opacity=".85"/>
+      </svg>
+      <div>
+        <h1>Lantern</h1>
+        <p>Offline-first learning app — clickable prototype</p>
+      </div>
+    </div>
+    <button class="conn-toggle online" id="connToggle">📶 <span id="connLabel">Online</span> — tap to simulate offline</button>
+  </div>
+
+  <div class="stage">
+    <!-- PHONE -->
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar">
+        <span>9:41</span>
+        <div class="status-icons">
+          <span id="statusConn">📶</span>
+          <span class="databadge" id="statusData">18/50MB</span>
+        </div>
+      </div>
+
+      <div class="screens" id="screens">
+
+        <!-- ONBOARDING -->
+        <section class="screen active" id="screen-onboarding">
+          <div class="onb-hero">
+            <div class="onb-glow">
+              <svg width="90" height="110" viewBox="0 0 60 78" aria-hidden="true">
+                <path d="M30 2 L30 10" stroke="#24402F" stroke-width="3" stroke-linecap="round"/>
+                <path d="M20 10 h20 l-4 8 h-12 z" fill="#24402F"/>
+                <rect x="12" y="18" width="36" height="42" rx="10" fill="#E7A93B"/>
+                <rect x="18" y="24" width="24" height="30" rx="6" fill="#F3C876" opacity=".6"/>
+                <path d="M20 60 h20 l-4 8 h-12 z" fill="#24402F"/>
+                <ellipse cx="30" cy="39" rx="8" ry="12" fill="#FBF8F1" opacity=".9"/>
+              </svg>
+            </div>
+            <h2>Learn without the internet</h2>
+            <p>Download lessons once. Keep learning even with no signal, low data, or power cuts.</p>
+          </div>
+          <div class="mode-card selected" id="modeLow" onclick="selectMode('low')">
+            <b>🔋 Low data mode (recommended)</b>
+            <span>Text-first lessons, smaller downloads, images load only when you choose.</span>
+          </div>
+          <div class="mode-card" id="modeNormal" onclick="selectMode('normal')">
+            <b>📶 Normal mode</b>
+            <span>Full lessons with images and audio. Uses more data per download.</span>
+          </div>
+          <button class="primary-btn" onclick="goHome()">Get started</button>
+        </section>
+
+        <!-- HOME -->
+        <section class="screen" id="screen-home">
+          <p class="greet">Welcome back, Amara</p>
+          <div class="data-meter">
+            <div class="data-meter-top"><b>Data used this week</b><span id="dataText">18 / 50 MB</span></div>
+            <div class="meter-bars" id="meterBars"></div>
+          </div>
+          <div id="offlineBanner" class="offline-banner" style="display:none;">
+            🏮 You're offline — downloaded lessons still work fully.
+          </div>
+          <div class="subject-grid" id="subjectGrid"></div>
+        </section>
+
+        <!-- LESSON LIST -->
+        <section class="screen" id="screen-lessons">
+          <div class="back-row">
+            <button class="back-btn" onclick="showScreen('home')" aria-label="Back to home">←</button>
+            <h2 class="screen-title" id="lessonsSubjectTitle">Subject</h2>
+          </div>
+          <p class="sub">Download a lesson once — open it anytime, even offline.</p>
+          <div id="lessonListItems"></div>
+        </section>
+
+        <!-- LESSON VIEW -->
+        <section class="screen" id="screen-lesson">
+          <div class="back-row">
+            <button class="back-btn" onclick="backToLessons()" aria-label="Back to lessons">←</button>
+            <h2 class="screen-title" id="lessonViewTitle">Lesson</h2>
+          </div>
+          <span class="offline-chip">🏮 Downloaded · works offline</span>
+          <div class="lesson-body" id="lessonBody"></div>
+          <div class="quiz-box" id="quizBox"></div>
+
+          <button class="complete-btn" id="completeBtn" onclick="completeLesson()">Mark as complete</button>
+        </section>
+
+        <!-- PROGRESS -->
+        <section class="screen" id="screen-progress">
+          <h2 class="screen-title">Your progress</h2>
+          <p class="sub">Saved on this phone — syncs to your teacher when you're online.</p>
+          <div class="stat-row">
+            <div class="stat-card"><div class="num" id="statCompleted">0</div><div class="lbl">Lessons done</div></div>
+            <div class="stat-card"><div class="num">4</div><div class="lbl">Day streak</div></div>
+            <div class="stat-card"><div class="num" id="statBadges">1</div><div class="lbl">Badges</div></div>
+          </div>
+          <div class="badge-row" id="badgeRow"></div>
+          <div class="sync-status" id="progressSyncStatus">✅ Everything synced</div>
+        </section>
+
+        <!-- SYNC -->
+        <section class="screen" id="screen-sync">
+          <h2 class="screen-title">Sync</h2>
+          <p class="sub">Your progress lives on this phone until you're back online.</p>
+          <div class="sync-center" id="syncArea"></div>
+        </section>
+
+      </div>
+
+      <nav class="tabbar" id="tabbar">
+        <button class="tab active" data-screen="home" onclick="showScreen('home')"><span class="ic">🏠</span>Home</button>
+        <button class="tab" data-screen="progress" onclick="showScreen('progress')"><span class="ic">📈</span>Progress</button>
+        <button class="tab" data-screen="sync" onclick="showScreen('sync')"><span class="ic">🔄</span>Sync</button>
+      </nav>
+    </div>
+
+    <!-- SIDE PANEL -->
+    <aside class="panel">
+      <h2>Prototype screens</h2>
+      <p class="hint">This stands in for a Figma link — tap through the phone like a real device, or jump straight to a screen below.</p>
+      <div class="screen-list" id="screenList">
+        <button data-s="onboarding" onclick="showScreen('onboarding')">1 · Onboarding</button>
+        <button data-s="home" onclick="showScreen('home')">2 · Home</button>
+        <button data-s="lessons" onclick="jumpLessons()">3 · Lesson list</button>
+        <button data-s="lesson" onclick="jumpLesson()">4 · Offline lesson view</button>
+        <button data-s="progress" onclick="showScreen('progress')">5 · Progress tracker</button>
+        <button data-s="sync" onclick="showScreen('sync')">6 · Sync</button>
+      </div>
+      <p class="note">Try the <b>Online/Offline</b> toggle above, then open Sync — that's the core offline-first idea in one interaction.</p>
+    </aside>
+  </div>
+</div>
+
+<script>
+const state = {
+  online: true,
+  dataUsed: 18,
+  dataCap: 50,
+  mode: 'low',
+  currentSubject: null,
+  currentLesson: null,
+  pendingSync: 0,
+  subjects: [
+    { id:'math', name:'Mathematics', icon:'➗', lessons:[
+      {id:'m1', title:'Fractions Made Easy', size:3, downloaded:true, completed:true, downloading:false, progress:0},
+      {id:'m2', title:'Adding & Subtracting', size:2, downloaded:true, completed:false, downloading:false, progress:0},
+      {id:'m3', title:'Telling Time', size:4, downloaded:false, completed:false, downloading:false, progress:0},
+    ]},
+    { id:'eng', name:'English', icon:'📖', lessons:[
+      {id:'e1', title:'Everyday Greetings', size:2, downloaded:true, completed:true, downloading:false, progress:0},
+      {id:'e2', title:'Reading Short Stories', size:5, downloaded:false, completed:false, downloading:false, progress:0},
+    ]},
+    { id:'sci', name:'Basic Science', icon:'🌱', lessons:[
+      {id:'s1', title:'Why Plants Need Water', size:3, downloaded:false, completed:false, downloading:false, progress:0},
+      {id:'s2', title:'The Human Body', size:4, downloaded:false, completed:false, downloading:false, progress:0},
+    ]},
+    { id:'life', name:'Life Skills', icon:'🪙', lessons:[
+      {id:'l1', title:'Saving Money Wisely', size:2, downloaded:true, completed:false, downloading:false, progress:0},
+      {id:'l2', title:'Staying Healthy', size:3, downloaded:false, downloading:false, completed:false, progress:0},
+    ]},
+  ]
+};
+
+const QUIZZES = {
+  m1:{q:"Which fraction is bigger?", opts:["1/8","3/4","1/5"], correct:1},
+  m2:{q:"What is 5 minus 2?", opts:["2","3","7"], correct:1},
+  m3:{q:"When the long hand points to the 12, what time is it?", opts:["Exactly on the hour","Half past the hour","Quarter past"], correct:0},
+  e1:{q:"What do you say to someone at 8pm?", opts:["Good morning","Good afternoon","Good evening"], correct:2},
+  e2:{q:"Which part of a story introduces the characters?", opts:["The beginning","The middle","The end"], correct:0},
+  s1:{q:"What do plant roots mainly take in?", opts:["Sunlight","Water","Sand"], correct:1},
+  s2:{q:"What organ pumps blood around the body?", opts:["The lungs","The stomach","The heart"], correct:2},
+  l1:{q:"What does 'saving' mean?", opts:["Spending all your money at once", "Keeping part of your money instead of spending it all", "Giving your money away"], correct:1},
+  l2:{q:"Which of these is a healthy daily habit?", opts:["Skipping meals", "Washing hands before eating", "Sleeping very little"], correct:1}
+};
+
+function renderQuiz(id){
+  const quiz = QUIZZES[id];
+  const box = document.getElementById('quizBox');
+  if(!quiz){ box.innerHTML=''; return; }
+  let optsHtml = quiz.opts.map((o,i)=>
+    '<button class="quiz-option" onclick="answerQuiz(this,'+(i===quiz.correct)+')">'+o+'</button>'
+  ).join('');
+  box.innerHTML = '<p>Quick check: '+quiz.q+'</p>'+optsHtml;
+}
+
+const LESSON_TEXT = {
+  m1:"Fractions show a part of a whole. If you cut an orange into 4 equal pieces and eat 1, you've eaten 1/4 of the orange. The top number counts the pieces you have — the bottom number counts how many pieces make the whole. Try it: draw a circle, split it into 4 parts, and shade in 3 of them. That's 3/4.",
+  m2:"When you add, you're combining two amounts into one — 3 stones plus 2 stones gives you 5 stones. When you subtract, you're taking an amount away — 5 stones minus 2 leaves you 3. Practice with objects around you (bottle caps, seeds, coins) before doing it with numbers alone on paper.",
+  m3:"A clock face has 12 numbers and two hands. The short hand shows the hour, the long hand shows the minutes. When the long hand points straight up at 12, it's exactly on the hour — like 3 o'clock. When it points to the 6, it's half past the hour — like half past 3.",
+  e1:"Greetings open every conversation. Say 'Good morning' before noon, 'good afternoon' after, and 'good evening' once the sun goes down. Always answer a greeting before asking your question — in most communities, skipping a greeting is considered impolite, even in a hurry.",
+  e2:"A short story usually has three parts: a beginning that introduces the characters and place, a middle where something happens or a problem appears, and an end where the problem is solved. As you read, try asking yourself: who is this story about, and what do they want?",
+  s1:"Plants take in water through their roots and carry it up through the stem to the leaves. Water helps the plant make its own food using sunlight — this process is called photosynthesis. Without enough water, a plant's leaves droop and it cannot make the food it needs to grow.",
+  s2:"Your body is made of systems that work together. Your heart pumps blood carrying oxygen to every part of you. Your lungs bring in the air you breathe. Your stomach and intestines break down food into energy. Even a small cut can heal because your body constantly repairs itself.",
+  l1:"Saving means keeping part of the money you receive instead of spending all of it right away. Even saving a little bit each week adds up over time. If you saved just 50 naira a week, that's over 2,600 naira in a year — enough to help with an emergency or a goal.",
+  l2:"Staying healthy starts with simple daily habits: drinking clean water, washing your hands before eating, eating a mix of foods (not just one type), and getting enough sleep. Small daily choices protect you from many common illnesses better than expensive treatment later."
+};
+
+function selectMode(m){
+  state.mode = m;
+  document.getElementById('modeLow').classList.toggle('selected', m==='low');
+  document.getElementById('modeNormal').classList.toggle('selected', m==='normal');
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.screen===id));
+  document.querySelectorAll('#screenList button').forEach(b=>b.classList.toggle('active', b.dataset.s===id));
+  if(id==='home') renderHome();
+  if(id==='progress') renderProgress();
+  if(id==='sync') renderSync();
+}
+function goHome(){ showScreen('home'); }
+function jumpLessons(){ if(!state.currentSubject) state.currentSubject='math'; openSubject(state.currentSubject); }
+function jumpLesson(){
+  if(!state.currentSubject) state.currentSubject='math';
+  const subj = state.subjects.find(s=>s.id===state.currentSubject);
+  const dl = subj.lessons.find(l=>l.downloaded) || subj.lessons[0];
+  openSubject(subj.id);
+  openLesson(dl.id);
+}
+
+function toggleConn(){
+  state.online = !state.online;
+  const btn = document.getElementById('connToggle');
+  btn.classList.toggle('online', state.online);
+  btn.classList.toggle('offline', !state.online);
+  document.getElementById('connLabel').textContent = state.online ? 'Online' : 'Offline';
+  document.getElementById('statusConn').textContent = state.online ? '📶' : '🚫';
+  btn.innerHTML = (state.online ? '📶 ' : '🚫 ') + '<span id="connLabel">'+(state.online?'Online':'Offline')+'</span> — tap to simulate ' + (state.online?'offline':'online');
+  renderHome(); renderSync();
+}
+document.getElementById('connToggle').addEventListener('click', toggleConn);
+
+function renderDataMeter(){
+  document.getElementById('statusData').textContent = state.dataUsed+'/'+state.dataCap+'MB';
+  const dt = document.getElementById('dataText'); if(dt) dt.textContent = state.dataUsed+' / '+state.dataCap+' MB';
+  const bars = document.getElementById('meterBars');
+  if(!bars) return;
+  bars.innerHTML='';
+  const total=20, filled=Math.round((state.dataUsed/state.dataCap)*total);
+  for(let i=0;i<total;i++){
+    const b=document.createElement('i');
+    if(i<filled) b.classList.add('filled');
+    bars.appendChild(b);
+  }
+}
+
+function renderHome(){
+  renderDataMeter();
+  document.getElementById('offlineBanner').style.display = state.online ? 'none' : 'flex';
+  const grid = document.getElementById('subjectGrid');
+  grid.innerHTML='';
+  state.subjects.forEach(s=>{
+    const dl = s.lessons.filter(l=>l.downloaded).length;
+    const card = document.createElement('button');
+    card.className='subject-card';
+    card.innerHTML = '<div class="ic">'+s.icon+'</div><b>'+s.name+'</b><div class="count">'+dl+' of '+s.lessons.length+' downloaded</div>';
+    card.onclick = ()=>openSubject(s.id);
+    grid.appendChild(card);
+  });
+}
+
+function openSubject(id){
+  state.currentSubject = id;
+  const subj = state.subjects.find(s=>s.id===id);
+  document.getElementById('lessonsSubjectTitle').textContent = subj.name;
+  renderLessonList();
+  showScreen('lessons');
+}
+
+function renderLessonList(){
+  const subj = state.subjects.find(s=>s.id===state.currentSubject);
+  const wrap = document.getElementById('lessonListItems');
+  wrap.innerHTML='';
+  subj.lessons.forEach(l=>{
+    const row = document.createElement('div');
+    row.className='lesson-item';
+    let right='';
+    if(l.downloaded){
+      right = l.completed
+        ? '<span class="done-chip">✓ Completed</span>'
+        : '<button class="open-btn" onclick="openLesson(\''+l.id+'\')">Open</button>';
+    } else if(l.downloading){
+      right = '<div class="progress-track"><div class="progress-fill" style="width:'+l.progress+'%"></div></div>';
+    } else {
+      right = state.online
+        ? '<button class="dl-btn" onclick="startDownload(\''+l.id+'\')">Download</button>'
+        : '<span class="done-chip" style="color:#8C4A2F;">Needs online</span>';
+    }
+    row.innerHTML = '<div><p class="li-title">'+l.title+'</p><span class="li-size">'+l.size+' MB</span></div>'+right;
+    wrap.appendChild(row);
+  });
+}
+
+function startDownload(id){
+  const subj = state.subjects.find(s=>s.id===state.currentSubject);
+  const lesson = subj.lessons.find(l=>l.id===id);
+  lesson.downloading = true; lesson.progress = 0;
+  renderLessonList();
+  const timer = setInterval(()=>{
+    lesson.progress += 20;
+    if(lesson.progress>=100){
+      lesson.progress=100; lesson.downloading=false; lesson.downloaded=true;
+      state.dataUsed += lesson.size;
+      clearInterval(timer);
+    }
+    renderLessonList();
+    renderDataMeter();
+  },250);
+}
+
+function backToLessons(){ renderLessonList(); showScreen('lessons'); }
+
+function openLesson(id){
+  const subj = state.subjects.find(s=>s.id===state.currentSubject);
+  const lesson = subj.lessons.find(l=>l.id===id);
+  state.currentLesson = id;
+  document.getElementById('lessonViewTitle').textContent = lesson.title;
+  document.getElementById('lessonBody').textContent = LESSON_TEXT[id] || 'Lesson content loads instantly because it was downloaded ahead of time — no data used to open it.';
+  const btn = document.getElementById('completeBtn');
+  btn.textContent = lesson.completed ? 'Completed ✓' : 'Mark as complete';
+  btn.classList.toggle('done', lesson.completed);
+  renderQuiz(id);
+  showScreen('lesson');
+}
+
+function answerQuiz(el,correct){
+  document.querySelectorAll('.quiz-option').forEach(o=>o.classList.remove('right','wrong'));
+  el.classList.add(correct ? 'right' : 'wrong');
+}
+
+function completeLesson(){
+  const subj = state.subjects.find(s=>s.id===state.currentSubject);
+  const lesson = subj.lessons.find(l=>l.id===state.currentLesson);
+  if(!lesson.completed){
+    lesson.completed = true;
+    state.pendingSync += 1;
+  }
+  const btn = document.getElementById('completeBtn');
+  btn.textContent='Completed ✓'; btn.classList.add('done');
+}
+
+function renderProgress(){
+  const completed = state.subjects.flatMap(s=>s.lessons).filter(l=>l.completed).length;
+  document.getElementById('statCompleted').textContent = completed;
+  const badges = completed>=3 ? 2 : 1;
+  document.getElementById('statBadges').textContent = badges;
+  const row = document.getElementById('badgeRow');
+  row.innerHTML='';
+  const chips = [['🌟','First lesson done']];
+  if(completed>=3) chips.push(['🔥','3-lesson streak']);
+  chips.forEach(c=>{
+    const d=document.createElement('div'); d.className='badge-chip';
+    d.innerHTML='<span>'+c[0]+'</span><span>'+c[1]+'</span>'; row.appendChild(d);
+  });
+  document.getElementById('progressSyncStatus').textContent = state.pendingSync>0
+    ? '🟡 '+state.pendingSync+' lesson(s) waiting to sync'
+    : '✅ Everything synced';
+}
+
+function renderSync(){
+  const area = document.getElementById('syncArea');
+  if(!state.online){
+    area.innerHTML = '<div class="sync-icon">🏮</div><h2 class="screen-title">You are offline</h2>'+
+      '<p class="sub">No problem — your progress is saved right here on the phone. Connect to Wi-Fi or airtime data and it will sync automatically.</p>'+
+      '<button class="primary-btn" disabled>Sync now</button>';
+    return;
+  }
+  if(state.pendingSync===0){
+    area.innerHTML = '<div class="sync-icon">✅</div><h2 class="screen-title">All caught up</h2>'+
+      '<p class="sub">Nothing waiting to sync right now.</p>';
+    return;
+  }
+  area.innerHTML = '<div class="sync-icon">🔄</div><h2 class="screen-title">Ready to sync</h2>'+
+    '<div class="sync-list"><div>'+state.pendingSync+' completed lesson(s)</div><div>Streak: 4 days</div></div>'+
+    '<button class="primary-btn" onclick="doSync()">Sync now</button>'+
+    '<p class="sync-success" id="syncSuccess">Synced! Your teacher can now see your progress.</p>';
+}
+
+function doSync(){
+  state.pendingSync = 0;
+  const s = document.getElementById('syncSuccess');
+  renderSync();
+  setTimeout(()=>{ const el=document.getElementById('syncSuccess'); if(el) el.style.display='block'; },150);
+}
+
+renderDataMeter();
+</script>
+</body>
+</html>
